@@ -1,18 +1,18 @@
 package com.itheima.controller;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.itheima.common.R;
 import com.itheima.domain.Employee;
 import com.itheima.service.EmployeeService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.util.DigestUtils;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.util.StringUtils;
+import org.springframework.web.bind.annotation.*;
 
 import javax.servlet.http.HttpServletRequest;
+import java.time.LocalDateTime;
 
 @Slf4j
 @RestController
@@ -69,5 +69,56 @@ public class EmployeeController {
         //1 销毁session中存储的数据
         req.getSession().removeAttribute("employee");
         return R.success("退出成功");
+    }
+
+    /**
+     * @Description: 添加员工
+     * @Author: Ling
+     * @Param: [req, emp]
+     * @Return: com.itheima.common.R<java.lang.String>
+     */
+    @PostMapping
+    public R<String> save(HttpServletRequest req, @RequestBody Employee emp) {
+        //1 设置初始密码 123456,MD5加密
+        emp.setPassword(DigestUtils.md5DigestAsHex("123456".getBytes()));
+
+        //2.设置创建,修改时间
+        emp.setCreateTime(LocalDateTime.now());
+        emp.setUpdateTime(LocalDateTime.now());
+
+        //3.获取当前系统登录用户的id Long类型
+        Long empId = (Long) req.getSession().getAttribute("employee");
+        emp.setUpdateUser(empId);
+        emp.setCreateUser(empId);
+
+        //4.存储用户信息到数据库
+        employeeService.save(emp);
+        return R.success("新增成功");
+    }
+
+
+    /**
+     * @Description: 员工信息分页查询
+     * @Author: Ling
+     * @Param: [page当前页, pageSize页面记录数, name查询员工条件]
+     * @Return: com.itheima.common.R<com.baomidou.mybatisplus.extension.plugins.pagination.Page>
+     */
+    @GetMapping("/page")
+    public R<Page> page(int page, int pageSize, String name) {
+        log.info("page={},pageSize={},name={}", page, pageSize, name);
+        //1 构造分页构造器
+        Page page1 = new Page(page, pageSize);
+
+        //2.构造条件构造器
+        LambdaQueryWrapper<Employee> lqw = new LambdaQueryWrapper<>();
+
+        //3.添加过滤条件,模糊查询
+        lqw.like(name != null, Employee::getName, name);
+        //添加排序条件
+        lqw.orderByDesc(Employee::getUpdateTime);
+
+        //4.执行查询
+        employeeService.page(page1, lqw);
+        return R.success(page1);
     }
 }
