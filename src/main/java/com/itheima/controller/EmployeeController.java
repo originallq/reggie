@@ -96,7 +96,6 @@ public class EmployeeController {
         return R.success("新增成功");
     }
 
-
     /**
      * @Description: 员工信息分页查询
      * @Author: Ling
@@ -120,5 +119,37 @@ public class EmployeeController {
         //4.执行查询
         employeeService.page(page1, lqw);
         return R.success(page1);
+    }
+
+    /**
+     * @Description: 禁用/启用员工状态
+     * @Author: Ling
+     * @Param: [req, emp]
+     * @Return: com.itheima.common.R<java.lang.String>
+     */
+    @PutMapping()
+    public R<String> updateById(HttpServletRequest req, @RequestBody Employee emp) {
+        //1.获取登录该用户的id
+        Long empId = (Long) req.getSession().getAttribute("employee");
+        //2.设置更新时间,更新用户
+        emp.setUpdateTime(LocalDateTime.now());
+        emp.setUpdateUser(empId);
+        employeeService.updateById(emp);
+        return R.success("修改成功");
+    }
+
+    /**
+     * @Description: 修改用户, 先回显数据, 然后走的是updateById方法
+     * @Author: Ling
+     * @Param: [id]
+     * @Return: com.itheima.common.R<com.itheima.domain.Employee>
+     */
+    @GetMapping("/{id}")
+    public R<Employee> findById(@PathVariable Long id) {
+        Employee emp = employeeService.getById(id);
+        if (emp != null) {
+            return R.success(emp);
+        }
+        return R.error("没有查到对应员工信息");
     }
 }
