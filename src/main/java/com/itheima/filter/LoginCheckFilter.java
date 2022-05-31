@@ -1,6 +1,7 @@
 package com.itheima.filter;
 
 import com.alibaba.fastjson.JSON;
+import com.itheima.common.BaseContext;
 import com.itheima.common.R;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.util.AntPathMatcher;
@@ -41,14 +42,21 @@ public class LoginCheckFilter implements Filter {
 
         //4 匹配成功,放行
         if (check) {
-            log.info("路径:{}放行",requestURI);
+            log.info("路径:{}放行", requestURI);
             filterChain.doFilter(req, resp);
             return;
         }
 
         //5 判断用户是否已经登录
-        if (req.getSession().getAttribute("employee") != null){
-            log.info("Id为{}的用户已经登录",req.getSession().getAttribute("employee"));
+        if (req.getSession().getAttribute("employee") != null) {
+            log.info("Id为{}的用户已经登录", req.getSession().getAttribute("employee"));
+            //long id = Thread.currentThread().getId();
+            //log.info("当前线程id为:{}", id);
+
+            //将当前登录用户的id存入到ThreadLocal中
+            Long empId = (Long) req.getSession().getAttribute("employee");
+            BaseContext.setCurrentId(empId);
+
             filterChain.doFilter(req, resp);
             return;
         }

@@ -82,14 +82,14 @@ public class EmployeeController {
         //1 设置初始密码 123456,MD5加密
         emp.setPassword(DigestUtils.md5DigestAsHex("123456".getBytes()));
 
-        //2.设置创建,修改时间
-        emp.setCreateTime(LocalDateTime.now());
-        emp.setUpdateTime(LocalDateTime.now());
+        //2.设置创建,修改时间--> 自动填充
+        //emp.setCreateTime(LocalDateTime.now());
+        //emp.setUpdateTime(LocalDateTime.now());
 
-        //3.获取当前系统登录用户的id Long类型
-        Long empId = (Long) req.getSession().getAttribute("employee");
-        emp.setUpdateUser(empId);
-        emp.setCreateUser(empId);
+        //3.获取当前系统登录用户的id Long类型 --> 自动填充
+        //Long empId = (Long) req.getSession().getAttribute("employee");
+        //emp.setUpdateUser(empId);
+        //emp.setCreateUser(empId);
 
         //4.存储用户信息到数据库
         employeeService.save(emp);
@@ -130,10 +130,11 @@ public class EmployeeController {
     @PutMapping()
     public R<String> updateById(HttpServletRequest req, @RequestBody Employee emp) {
         //1.获取登录该用户的id
-        Long empId = (Long) req.getSession().getAttribute("employee");
-        //2.设置更新时间,更新用户
-        emp.setUpdateTime(LocalDateTime.now());
-        emp.setUpdateUser(empId);
+        //Long empId = (Long) req.getSession().getAttribute("employee");
+
+        //2.设置更新时间,更新用户 --> 自动填充
+        //emp.setUpdateTime(LocalDateTime.now());
+        //emp.setUpdateUser(empId);
         employeeService.updateById(emp);
         return R.success("修改成功");
     }
