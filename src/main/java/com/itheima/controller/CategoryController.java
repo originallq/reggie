@@ -5,9 +5,12 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.itheima.common.R;
 import com.itheima.domain.Category;
 import com.itheima.service.CategoryService;
+import com.itheima.service.DishService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
 
 @RestController
 @Slf4j
@@ -65,10 +68,34 @@ public class CategoryController {
         return R.success("修改成功");
     }
 
+    /**
+     * @Description: 扩展删除操作
+     * @Param: [id]
+     * @Return: com.itheima.common.R<java.lang.String>
+     * @Author: Ling
+     */
     @DeleteMapping()
     public R<String> delete(Long id) {
         //执行自定义删除操作
         categoryService.remove(id);
         return R.success("删除成功");
+    }
+
+    /**
+     * @Description: 新建菜品分类下拉框,list
+     * @Param: [category]
+     * @Return: com.itheima.common.R<java.util.List<com.itheima.domain.Category>>
+     * @Author: Ling
+     */
+    @GetMapping("/list")
+    public R<List<Category>> listType(Category category) {
+        //1.构造条件构造器
+        LambdaQueryWrapper<Category> lqw = new LambdaQueryWrapper<>();
+        //2.添加过滤条件
+        lqw.eq(category.getType() != null, Category::getType, category.getType());
+        lqw.orderByAsc(Category::getSort).orderByDesc(Category::getUpdateTime);
+        //3.执行查询
+        List<Category> list = categoryService.list(lqw);
+        return R.success(list);
     }
 }
