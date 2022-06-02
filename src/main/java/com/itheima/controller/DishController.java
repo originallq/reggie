@@ -129,10 +129,49 @@ public class DishController {
         return R.success(dishDto);
     }
 
+    /**
+     * @Description: 修改菜品信息, 口味信息功能
+     * @Param: [dishDto]
+     * @Return: com.itheima.common.R<java.lang.String>
+     * @Author: Ling
+     */
     @PutMapping
     public R<String> update(@RequestBody DishDto dishDto) {
         //调用saveWithFlavor方法
         dishService.updateWithFlavor(dishDto);
         return R.success("修改成功");
     }
+
+    /**
+     * @Description: 批量删除/单个删除操作,前端传来的是id数组
+     * @Param: [ids]
+     * @Return: com.itheima.common.R<java.lang.String>
+     * @Author: Ling
+     */
+    @DeleteMapping
+    public R<String> deleteIds(long[] ids) {
+        for (long id : ids) {
+            dishService.removeById(id);
+        }
+        return R.success("删除成功");
+    }
+
+    /**
+     * @Description: 批量停售/起售
+     * @Param: [status, ids]
+     * @Return: com.itheima.common.R<java.lang.String>
+     * @Author: Ling
+     */
+    @PostMapping("/status/{status}")
+    public R<String> updateStatus(@PathVariable int status, long[] ids) {
+        for (long id : ids) {
+            //根据id查询菜品信息
+            Dish dish = dishService.getById(id);
+            //改变当前菜品状态
+            dish.setStatus(status);
+            dishService.updateById(dish);
+        }
+        return R.success("操作成功");
+    }
+
 }
