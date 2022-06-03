@@ -3,6 +3,7 @@ package com.itheima.service.impl;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.service.IService;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import com.itheima.common.BusinessException;
 import com.itheima.domain.Dish;
 import com.itheima.domain.DishFlavor;
 import com.itheima.dto.DishDto;
@@ -66,7 +67,6 @@ public class DishServiceImpl extends ServiceImpl<DishMapper, Dish> implements Di
         List<DishFlavor> flavors = dishFlavorService.list(lqw);
 
         dishDto.setFlavors(flavors);
-
         return dishDto;
     }
 
@@ -95,6 +95,33 @@ public class DishServiceImpl extends ServiceImpl<DishMapper, Dish> implements Di
         }).collect(Collectors.toList());
 
         dishFlavorService.saveBatch(flavors);
-
     }
+
+    /**
+     * @Description: 删除菜品, 同时删除与菜品对应的口味数据
+     * @Param: [ids]
+     * @Return: void
+     * @Author: Ling
+     */
+    @Override
+    public void deleteWithFlavor(List<Long> ids) {
+        //查询当前菜品的状态,是否可以删除
+        LambdaQueryWrapper<Dish> lqw = new LambdaQueryWrapper<>();
+        lqw.in(Dish::getId, ids);
+        lqw.eq(Dish::getStatus, 1);
+        int count = this.count(lqw);
+        if (count > 0) {
+            //无法正常删除,抛出业务异常
+            throw new BusinessException("无法删除,有处于正在售卖中的菜品");
+        }
+        //可以正常删除,执行
+        this.removeByIds(ids);
+
+        //删除dish_flavor表中对应的口味信息
+        LambdaQueryWrapper<DishFlavor> sdLqw = new LambdaQueryWrapper<>();
+        //寻找表中dish_id在ids集合中的数据
+        sdLqw.in(DishFlavor::getDishId, ids);
+        dishFlavorService.remove(sdLqw);
+    }
+
 }

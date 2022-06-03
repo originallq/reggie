@@ -143,16 +143,15 @@ public class DishController {
     }
 
     /**
-     * @Description: 批量删除/单个删除操作,前端传来的是id数组
+     * @Description: 批量删除/单个删除操作,前端传来的是id集合
      * @Param: [ids]
      * @Return: com.itheima.common.R<java.lang.String>
      * @Author: Ling
      */
     @DeleteMapping
-    public R<String> deleteIds(long[] ids) {
-        for (long id : ids) {
-            dishService.removeById(id);
-        }
+    public R<String> deleteIds(@RequestParam List<Long> ids) {
+        //使用扩展方法deleteWithFlavor,同时删除菜品和对应的口味数据
+        dishService.deleteWithFlavor(ids);
         return R.success("删除成功");
     }
 
@@ -172,6 +171,29 @@ public class DishController {
             dishService.updateById(dish);
         }
         return R.success("操作成功");
+    }
+
+    /**
+     * @Description: 新增套餐中选择套餐菜品
+     * @Param: [dish]
+     * @Return: com.itheima.common.R<java.util.List < com.itheima.domain.Dish>>
+     * @Author: Ling
+     */
+    @GetMapping("/list")
+    public R<List<Dish>> list(Dish dish) {
+        //1.构造条件构造器
+        LambdaQueryWrapper<Dish> lqw = new LambdaQueryWrapper<>();
+
+        //2.添加过滤条件
+        lqw.eq(dish.getCategoryId() != null, Dish::getCategoryId, dish.getCategoryId());
+        //只查询状态为1(起售状态)的菜品
+        lqw.eq(Dish::getStatus, 1);
+        lqw.orderByAsc(Dish::getSort).orderByDesc(Dish::getUpdateTime);
+        //3.执行sql
+        List<Dish> list = dishService.list(lqw);
+
+        return R.success(list);
+
     }
 
 }
