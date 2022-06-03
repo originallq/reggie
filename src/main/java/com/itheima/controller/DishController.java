@@ -174,7 +174,7 @@ public class DishController {
     }
 
     /**
-     * @Description: 新增套餐中选择套餐菜品
+     * @Description: 新增套餐中选择套餐下拉框
      * @Param: [dish]
      * @Return: com.itheima.common.R<java.util.List < com.itheima.domain.Dish>>
      * @Author: Ling

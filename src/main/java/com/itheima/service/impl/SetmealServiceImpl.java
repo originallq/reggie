@@ -10,6 +10,7 @@ import com.itheima.dto.SetmealDto;
 import com.itheima.mapper.SetmealMapper;
 import com.itheima.service.SetmealDishService;
 import com.itheima.service.SetmealService;
+import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -69,7 +70,60 @@ public class SetmealServiceImpl extends ServiceImpl<SetmealMapper, Setmeal> impl
         //删除setmeal_dish表中的数据
         //delete from setmeal_dish where setmeal_id in (1,2,3)ids
         LambdaQueryWrapper<SetmealDish> sdLqw = new LambdaQueryWrapper<>();
-        sdLqw.in(SetmealDish::getSetmealId,ids);
+        sdLqw.in(SetmealDish::getSetmealId, ids);
         setmealDishService.remove(sdLqw);
+    }
+
+    /**
+     * @Description: 根据id查询, 回显套餐信息与包含的菜品信息
+     * @Param: [id]
+     * @Return: java.util.List<com.itheima.dto.SetmealDto>
+     * @Author: Ling
+     */
+    @Override
+    public SetmealDto getByIdWithDish(Long id) {
+        //1.查出setmeal表中的基本信息
+        Setmeal setmeal = this.getById(id);
+
+        //2.创建一个SetmealDto对象,通过拷贝赋值
+        SetmealDto setmealDto = new SetmealDto();
+        BeanUtils.copyProperties(setmeal, setmealDto);
+
+        //获取setmealId,然后获取对应的套餐菜品
+        Long setmealId = setmeal.getId();
+        LambdaQueryWrapper<SetmealDish> lqw = new LambdaQueryWrapper<>();
+        lqw.eq(SetmealDish::getSetmealId, setmealId);
+        List<SetmealDish> list = setmealDishService.list(lqw);
+
+        //封装到setmealDto中
+        setmealDto.setSetmealDishes(list);
+        return setmealDto;
+    }
+
+    /**
+     * @Description: 修改套餐数据-->修改setmeal表和setmeal_dish表
+     * @Param: [setmealDto]
+     * @Return: void
+     */
+    @Override
+    public void updateWithDish(SetmealDto setmealDto) {
+        //修改setmeal表信息
+        this.updateById(setmealDto);
+
+        //删除原先套餐中的菜品
+        LambdaQueryWrapper<SetmealDish> lqw = new LambdaQueryWrapper<>();
+        //Long setmealDtoId = setmealDto.getId();
+        lqw.eq(SetmealDish::getSetmealId, setmealDto.getId());
+        setmealDishService.remove(lqw);
+
+        //修改setmeal_dish表
+        List<SetmealDish> setmealDishes = setmealDto.getSetmealDishes();
+        //封装setmeal_id字段
+        setmealDishes = setmealDishes.stream().map((item) -> {
+            item.setSetmealId(setmealDto.getId());
+            return item;
+        }).collect(Collectors.toList());
+
+        setmealDishService.saveBatch(setmealDishes);
     }
 }

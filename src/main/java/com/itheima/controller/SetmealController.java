@@ -87,6 +87,29 @@ public class SetmealController {
     }
 
     /**
+     * @Description: 根据id查询, 回显套餐信息与包含的菜品信息
+     * @Param: [id]
+     * @Return: com.itheima.common.R<com.itheima.dto.SetmealDto>
+     */
+    @GetMapping("/{id}")
+    public R<SetmealDto> showSetmealInfo(@PathVariable Long id) {
+        SetmealDto setmealDto = setmealService.getByIdWithDish(id);
+        return R.success(setmealDto);
+    }
+
+    /**
+     * @Description: 修改套餐数据-->修改setmeal表和setmeal_dish表
+     * @Param: []
+     * @Return: com.itheima.common.R<java.lang.String>
+     */
+    @PutMapping
+    public R<String> update(@RequestBody SetmealDto setmealDto) {
+        setmealService.updateWithDish(setmealDto);
+        return R.success("修改成功");
+    }
+
+
+    /**
      * @Description: 删除套餐，同时需要删除套餐和菜品的关联数据
      * @Param: [ids]
      * @Return: com.itheima.common.R<java.lang.String>
