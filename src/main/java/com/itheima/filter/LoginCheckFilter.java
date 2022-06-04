@@ -34,7 +34,10 @@ public class LoginCheckFilter implements Filter {
                 "/employee/login",
                 "/employee/logout",
                 "/backend/**",
-                "/front/**"
+                "/front/**",
+                "/common/**",
+                "/user/login",
+                "/user/sendMsg"
         };
 
         //3 判断本次是否需要执行操作
@@ -47,7 +50,7 @@ public class LoginCheckFilter implements Filter {
             return;
         }
 
-        //5 判断用户是否已经登录
+        //5-1 判断用户是否已经登录
         if (req.getSession().getAttribute("employee") != null) {
             log.info("Id为{}的用户已经登录", req.getSession().getAttribute("employee"));
             //long id = Thread.currentThread().getId();
@@ -56,6 +59,19 @@ public class LoginCheckFilter implements Filter {
             //将当前登录用户的id存入到ThreadLocal中
             Long empId = (Long) req.getSession().getAttribute("employee");
             BaseContext.setCurrentId(empId);
+
+            filterChain.doFilter(req, resp);
+            return;
+        }
+        //5-2 判断移动端用户是否已经登录
+        if (req.getSession().getAttribute("user") != null) {
+            log.info("Id为{}的用户已经登录", req.getSession().getAttribute("user"));
+            //long id = Thread.currentThread().getId();
+            //log.info("当前线程id为:{}", id);
+
+            //将当前登录用户的id存入到ThreadLocal中
+            Long userId = (Long) req.getSession().getAttribute("user");
+            BaseContext.setCurrentId(userId);
 
             filterChain.doFilter(req, resp);
             return;

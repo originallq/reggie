@@ -180,7 +180,7 @@ public class DishController {
      * @Author: Ling
      */
     @GetMapping("/list")
-    public R<List<Dish>> list(Dish dish) {
+    public R<List<DishDto>> list(Dish dish) {
         //1.构造条件构造器
         LambdaQueryWrapper<Dish> lqw = new LambdaQueryWrapper<>();
 
@@ -192,8 +192,34 @@ public class DishController {
         //3.执行sql
         List<Dish> list = dishService.list(lqw);
 
-        return R.success(list);
+        /* 扩展:返回集合中应该含有口味信息,用于展示 */
 
+        List<DishDto> dishDtoList = list.stream().map((item) -> {
+            /* 1.封装分类名称 */
+            //a.创建DishDto对象,并进行拷贝赋值
+            DishDto dishDto = new DishDto();
+            BeanUtils.copyProperties(item, dishDto);
+
+            //b.获得分类id->categoryId
+            Long categoryId = dishDto.getCategoryId();
+            //c.根据分类id获取分类对象
+            Category category = categoryService.getById(categoryId);
+            if (category != null) {
+                String categoryName = category.getName();
+                dishDto.setCategoryName(categoryName);
+            }
+
+            /* 2.封装口味信息 */
+            Long dishId = item.getId();
+            LambdaQueryWrapper<DishFlavor> dfLqw = new LambdaQueryWrapper<>();
+            dfLqw.eq(DishFlavor::getDishId, dishId);
+            List<DishFlavor> dishFlavorList = dishFlavorService.list(dfLqw);
+            dishDto.setFlavors(dishFlavorList);
+
+
+            return dishDto;
+        }).collect(Collectors.toList());
+        return R.success(dishDtoList);
     }
 
 }

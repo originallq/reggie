@@ -139,4 +139,20 @@ public class SetmealController {
         }
         return R.success("修改状态成功");
     }
+
+    /**
+     * @Description: 根据分类id查询套餐
+     * @Param: [setmeal]
+     * @Return: com.itheima.common.R<java.util.List<com.itheima.domain.Setmeal>>
+     */
+    @GetMapping("/list")
+    public R<List<Setmeal>> list(Setmeal setmeal){
+        LambdaQueryWrapper<Setmeal> lqw = new LambdaQueryWrapper<>();
+        lqw.eq(setmeal!=null,Setmeal::getCategoryId,setmeal.getCategoryId());
+        lqw.eq(setmeal!=null,Setmeal::getStatus,setmeal.getStatus());
+        List<Setmeal> setmealList = setmealService.list(lqw);
+        
+        return R.success(setmealList);
+
+    }
 }
