@@ -1,0 +1,15 @@
+package com.itheima.service;
+
+import com.baomidou.mybatisplus.extension.service.IService;
+import com.itheima.domain.Orders;
+import org.springframework.transaction.annotation.Transactional;
+
+public interface OrdersService extends IService<Orders> {
+    /**
+     * @Description: 用户下单
+     * @Param: [orders]
+     * @Return: void
+     */
+    @Transactional
+    void submit(Orders orders);
+}
