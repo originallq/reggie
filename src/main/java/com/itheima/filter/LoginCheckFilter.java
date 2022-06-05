@@ -37,7 +37,8 @@ public class LoginCheckFilter implements Filter {
                 "/front/**",
                 "/common/**",
                 "/user/login",
-                "/user/sendMsg"
+                "/user/sendMsg",
+                "/alipay/**"
         };
 
         //3 判断本次是否需要执行操作

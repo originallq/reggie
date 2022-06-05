@@ -68,6 +68,9 @@ public class UserController {
                 user = new User();
                 user.setPhone(phone);
                 user.setStatus(1);
+                //设置默认用户名,供订单明细使用
+                String name = "用户" + ValidateCodeUtils.generateValidateCode(6);
+                user.setName(name);
                 userService.save(user);
             }
             //将登录信息存储到浏览器,避免拦截器拦截

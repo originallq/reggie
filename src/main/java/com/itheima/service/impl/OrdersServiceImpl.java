@@ -11,6 +11,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.ImportAutoConfiguration;
 import org.springframework.stereotype.Service;
 
+import javax.servlet.http.HttpSession;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
@@ -35,7 +36,7 @@ public class OrdersServiceImpl extends ServiceImpl<OrdersMapper, Orders> impleme
      * @Return: void
      */
     @Override
-    public void submit(Orders orders) {
+    public void submit(Orders orders, HttpSession session) {
         //获取当前用户id
         Long userId = BaseContext.getCurrentId();
 
@@ -82,6 +83,9 @@ public class OrdersServiceImpl extends ServiceImpl<OrdersMapper, Orders> impleme
                 + (addressBook.getCityName() == null ? "" : addressBook.getCityName())
                 + (addressBook.getDistrictName() == null ? "" : addressBook.getDistrictName())
                 + (addressBook.getDetail() == null ? "" : addressBook.getDetail()));
+        //将本次订单ID存入session域中
+        session.setAttribute("orderId",orders.getId());
+
         //向订单表插入一条数据
         this.save(orders);
 

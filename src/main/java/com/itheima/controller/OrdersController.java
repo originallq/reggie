@@ -1,6 +1,7 @@
 package com.itheima.controller;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.itheima.common.BaseContext;
 import com.itheima.common.R;
@@ -12,9 +13,12 @@ import com.itheima.service.OrdersService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.web.bind.annotation.*;
 
+import javax.servlet.http.HttpSession;
 import java.time.LocalDateTime;
+import java.util.Date;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -28,16 +32,54 @@ public class OrdersController {
     private OrderDetailService orderDetailService;
 
     /**
-     * @Description: 用户下单
+     * @Description: 服务器端订单明细分页查询
+     * @Param: [page, pageSize, number, beginTime, endTime]
+     * @Return
+     */
+    @GetMapping("/page")
+    public R<Page> ordersDetails(int page, int pageSize, Long number, @DateTimeFormat(pattern = "yyyy-MM-dd HH:mm:ss") Date beginTime, @DateTimeFormat(pattern = "yyyy-MM-dd HH:mm:ss") Date endTime) {
+        //构造分页\条件构造器
+        Page<Orders> ordersPage = new Page<>(page, pageSize);
+        LambdaQueryWrapper<Orders> lqw = new LambdaQueryWrapper<>();
+        //添加过滤条件
+        //1.查询所有用户的订单明细,不是单独的某一个人
+        //lqw.eq(Orders::getUserId, BaseContext.getCurrentId());
+        //2.订单号,需要进行非空判断
+        lqw.eq(number != null, Orders::getNumber, number);
+        //3.开始时间&截止时间,需要进行非空判断
+        lqw.between(beginTime != null && endTime != null, Orders::getCheckoutTime, beginTime, endTime);
+        //4.按照订单时间排序
+        lqw.orderByDesc(Orders::getOrderTime);
+
+        //执行分页查询
+        ordersService.page(ordersPage, lqw);
+
+        return R.success(ordersPage);
+    }
+
+    @PutMapping
+    public R<String> updateOrderStatus(@RequestBody Orders orders) {
+        orders.setStatus(4);
+        ordersService.updateById(orders);
+        return R.success("修改成功");
+    }
+
+    /**
+     * @Description: 客户端用户下单
      * @Param: [orders]
      * @Return
      */
     @PostMapping("/submit")
-    public R<String> submit(@RequestBody Orders orders) {
-        ordersService.submit(orders);
+    public R<String> submit(@RequestBody Orders orders, HttpSession session) {
+        ordersService.submit(orders, session);
         return R.success("下单成功");
     }
 
+    /**
+     * @Description: 客户端订单明细
+     * @Param: [page, pageSize]
+     * @Return
+     */
     @GetMapping("/userPage")
     public R<Page> ordersList(int page, int pageSize) {
         Page<Orders> ordersPage = new Page<>(page, pageSize);
