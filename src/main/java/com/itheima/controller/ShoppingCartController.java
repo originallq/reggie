@@ -111,6 +111,11 @@ public class ShoppingCartController {
         return R.success("操作成功");
     }
 
+    /**
+     * @Description: 根据用户id清空购物车
+     * @Param: []
+     * @Return
+     */
     @DeleteMapping("/clean")
     public R<String> delete() {
         //根据当前用户id清空购物车

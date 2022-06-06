@@ -1,10 +1,12 @@
 package com.itheima.controller;
 
+import com.alibaba.fastjson.JSON;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.itheima.common.R;
 import com.itheima.domain.Category;
 import com.itheima.domain.Setmeal;
+import com.itheima.domain.SetmealCount;
 import com.itheima.dto.SetmealDto;
 import com.itheima.service.CategoryService;
 import com.itheima.service.SetmealDishService;
@@ -15,7 +17,12 @@ import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
+import javax.servlet.http.HttpServletResponse;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 @RestController
@@ -143,16 +150,64 @@ public class SetmealController {
     /**
      * @Description: 根据分类id查询套餐
      * @Param: [setmeal]
-     * @Return: com.itheima.common.R<java.util.List<com.itheima.domain.Setmeal>>
+     * @Return: com.itheima.common.R<java.util.List < com.itheima.domain.Setmeal>>
      */
     @GetMapping("/list")
-    public R<List<Setmeal>> list(Setmeal setmeal){
+    public R<List<Setmeal>> list(Setmeal setmeal) {
         LambdaQueryWrapper<Setmeal> lqw = new LambdaQueryWrapper<>();
-        lqw.eq(setmeal!=null,Setmeal::getCategoryId,setmeal.getCategoryId());
-        lqw.eq(setmeal!=null,Setmeal::getStatus,setmeal.getStatus());
+        lqw.eq(setmeal != null, Setmeal::getCategoryId, setmeal.getCategoryId());
+        lqw.eq(setmeal != null, Setmeal::getStatus, setmeal.getStatus());
         List<Setmeal> setmealList = setmealService.list(lqw);
-        
+
         return R.success(setmealList);
+    }
+
+    @GetMapping("/count")
+    public List<SetmealCount> count() {
+        //查出setmeal集合
+        List<Setmeal> list = setmealService.list();
+
+        Set<Long> ids = new HashSet<>();
+        for (Setmeal setmeal : list) {
+            //获取分类id
+            Long categoryId = setmeal.getCategoryId();
+            ids.add(categoryId);
+        }
+        //方式二: 使用stream流去重,去除重复categoryId数据
+//        List<Long> idList = list.stream().map((item) -> {
+//            Long categoryId = item.getCategoryId();
+//            return categoryId;
+//        }).collect(Collectors.toList());
+
+        List<SetmealCount> countList = new ArrayList<>();
+        for (Long categoryId : ids) {
+            //创建SetmealCount 对象
+            SetmealCount setmealCount = new SetmealCount();
+
+            //获取分类id
+            //Long categoryId = setmeal.getCategoryId();
+            //统计当前分类id下的套餐数量
+            LambdaQueryWrapper<Setmeal> lqw = new LambdaQueryWrapper<>();
+            lqw.eq(Setmeal::getCategoryId, categoryId);
+            int count = setmealService.count(lqw);
+            setmealCount.setValue(count); //填充数据
+
+            //根据分类id获取分类名称
+            Category category = categoryService.getById(categoryId);
+            String categoryName = category.getName();
+            setmealCount.setName(categoryName); //封装数据
+
+            countList.add(setmealCount);
+        }
+        return countList;
+        /*
+        //2.将集合brands转成json字符串
+        String res = JSON.toJSONString(countList);
+        //3.将结果响应给浏览器
+        //设置编码格式
+        resp.setContentType("text/json;charset=utf-8");
+        resp.getWriter().write(res);
+        */
 
     }
 }

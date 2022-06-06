@@ -5,6 +5,7 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.itheima.common.R;
 import com.itheima.domain.Category;
 import com.itheima.domain.Dish;
+import com.itheima.domain.DishCount;
 import com.itheima.domain.DishFlavor;
 import com.itheima.dto.DishDto;
 import com.itheima.service.CategoryService;
@@ -17,7 +18,9 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 @RestController
@@ -220,6 +223,42 @@ public class DishController {
             return dishDto;
         }).collect(Collectors.toList());
         return R.success(dishDtoList);
+    }
+
+
+    /**
+     * @Description: 数据视图展示
+     * @Param: []
+     * @Return
+     */
+    @GetMapping("/count")
+    public List<DishCount> count() {
+        //1.获取dish的集合
+        List<Dish> list = dishService.list();
+        //2.使用set集去除重复分类id
+        Set<Long> ids = new HashSet<>();
+        for (Dish dish : list) {
+            Long categoryId = dish.getCategoryId();
+            ids.add(categoryId);
+        }
+        //3.使用id获取分类名称和每个名称对应下的菜品数量
+        List<DishCount> dishCountList = ids.stream().map((item) -> {
+            DishCount dishCount = new DishCount();
+
+            //封装value值
+            LambdaQueryWrapper<Dish> lqw = new LambdaQueryWrapper<>();
+            lqw.eq(Dish::getCategoryId, item);
+            int count = dishService.count(lqw);
+            dishCount.setValue(count);
+
+            //封装name值
+            Category category = categoryService.getById(item);
+            dishCount.setName(category.getName());
+
+            return dishCount;
+        }).collect(Collectors.toList());
+
+        return dishCountList;
     }
 
 }
