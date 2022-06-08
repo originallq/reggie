@@ -235,7 +235,7 @@ public class DishController {
     public List<DishCount> count() {
         //1.获取dish的集合
         List<Dish> list = dishService.list();
-        //2.使用set集去除重复分类id
+        //2.使用set集合去除重复分类id
         Set<Long> ids = new HashSet<>();
         for (Dish dish : list) {
             Long categoryId = dish.getCategoryId();
@@ -243,6 +243,7 @@ public class DishController {
         }
         //3.使用id获取分类名称和每个名称对应下的菜品数量
         List<DishCount> dishCountList = ids.stream().map((item) -> {
+            //此时item代表的是分类ID(categoryId)
             DishCount dishCount = new DishCount();
 
             //封装value值

@@ -7,9 +7,11 @@ import com.itheima.common.BaseContext;
 import com.itheima.common.R;
 import com.itheima.domain.OrderDetail;
 import com.itheima.domain.Orders;
+import com.itheima.domain.ShoppingCart;
 import com.itheima.dto.OrdersDto;
 import com.itheima.service.OrderDetailService;
 import com.itheima.service.OrdersService;
+import com.itheima.service.ShoppingCartService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -30,6 +32,8 @@ public class OrdersController {
     private OrdersService ordersService;
     @Autowired
     private OrderDetailService orderDetailService;
+    @Autowired
+    private ShoppingCartService shoppingCartService;
 
     /**
      * @Description: 服务器端订单明细分页查询
@@ -57,6 +61,11 @@ public class OrdersController {
         return R.success(ordersPage);
     }
 
+    /**
+     * @Description: 修改派送状态
+     * @Param: [orders]
+     * @Return
+     */
     @PutMapping
     public R<String> updateOrderStatus(@RequestBody Orders orders) {
         orders.setStatus(4);
@@ -97,6 +106,7 @@ public class OrdersController {
         //1.拷贝赋值,忽略records集合
         BeanUtils.copyProperties(ordersPage, ordersDtoPage, "records");
 
+        //字符流处理方式
         List<OrdersDto> ordersDtoList = records.stream().map((item) -> {
             //拷贝赋值给ordersDto
             OrdersDto ordersDto = new OrdersDto();
@@ -116,6 +126,36 @@ public class OrdersController {
         ordersDtoPage.setRecords(ordersDtoList);
 
         return R.success(ordersDtoPage);
+    }
+
+    @PostMapping("/again")
+    public R<String> again(@RequestBody Orders orders) {
+        if (orders == null) {
+            return R.error("未知错误");
+        }
+        //根据订单ID获取orders,以及订单下的菜品\套餐
+        Orders order = ordersService.getById(orders.getId());
+
+        LambdaQueryWrapper<OrderDetail> lqw = new LambdaQueryWrapper<>();
+        lqw.eq(OrderDetail::getOrderId, orders.getId());
+        //订单明细集合
+        List<OrderDetail> list = orderDetailService.list(lqw);
+
+
+        List<ShoppingCart> shoppingCartList = list.stream().map((item) -> {
+            ShoppingCart shoppingCart = new ShoppingCart();
+            //赋值拷贝
+            BeanUtils.copyProperties(item, shoppingCart);
+            shoppingCart.setUserId(BaseContext.getCurrentId());
+            return shoppingCart;
+        }).collect(Collectors.toList());
+
+        //添加到购物车
+        for (ShoppingCart shoppingCart : shoppingCartList) {
+            shoppingCartService.save(shoppingCart);
+        }
+
+        return R.success("再来一单喽");
     }
 
 }
