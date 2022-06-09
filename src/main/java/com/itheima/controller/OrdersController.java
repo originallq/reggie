@@ -72,7 +72,7 @@ public class OrdersController {
      */
     @PutMapping
     public R<String> updateOrderStatus(@RequestBody Orders orders) {
-        orders.setStatus(4);
+        //传递过来的数据是已经修改好的状态数据,不需要在单独操作
         ordersService.updateById(orders);
         return R.success("修改成功");
     }
