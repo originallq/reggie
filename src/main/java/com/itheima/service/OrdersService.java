@@ -4,6 +4,7 @@ import com.baomidou.mybatisplus.extension.service.IService;
 import com.itheima.domain.Orders;
 import org.springframework.transaction.annotation.Transactional;
 
+import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpSession;
 
 public interface OrdersService extends IService<Orders> {
@@ -13,5 +14,5 @@ public interface OrdersService extends IService<Orders> {
      * @Return: void
      */
     @Transactional
-    void submit(Orders orders, HttpSession session);
+    void submit(Orders orders, HttpServletRequest req);
 }

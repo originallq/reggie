@@ -11,6 +11,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.ImportAutoConfiguration;
 import org.springframework.stereotype.Service;
 
+import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpSession;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
@@ -36,7 +37,7 @@ public class OrdersServiceImpl extends ServiceImpl<OrdersMapper, Orders> impleme
      * @Return: void
      */
     @Override
-    public void submit(Orders orders, HttpSession session) {
+    public void submit(Orders orders, HttpServletRequest req) {
         //获取当前用户id
         Long userId = BaseContext.getCurrentId();
 
@@ -72,7 +73,7 @@ public class OrdersServiceImpl extends ServiceImpl<OrdersMapper, Orders> impleme
         orders.setId(orderId);
         orders.setOrderTime(LocalDateTime.now());
         orders.setCheckoutTime(LocalDateTime.now());
-        orders.setStatus(2);
+        //orders.setStatus(2);
         orders.setAmount(new BigDecimal(amount.get()));//总金额
         orders.setUserId(userId);
         orders.setNumber(String.valueOf(orderId));
@@ -84,7 +85,14 @@ public class OrdersServiceImpl extends ServiceImpl<OrdersMapper, Orders> impleme
                 + (addressBook.getDistrictName() == null ? "" : addressBook.getDistrictName())
                 + (addressBook.getDetail() == null ? "" : addressBook.getDetail()));
         //将本次订单ID存入session域中
-        session.setAttribute("orderId",orders.getId());
+        HttpSession session = req.getSession();
+        session.setAttribute("orderId", orders.getId());
+
+        //需要再存一个session记录订单ID
+        //HttpSession session1 = req.getSession();
+        //session1.setAttribute("returnOrderId", orders.getId());
+        req.getServletContext().setAttribute("returnOrderId", orders.getId());
+
 
         //向订单表插入一条数据
         this.save(orders);

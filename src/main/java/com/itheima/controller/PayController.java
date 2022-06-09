@@ -47,14 +47,15 @@ public class PayController {
     private final String NOTIFY_URL = "http://127.0.0.1/notifyUrl";
     //支付宝同步通知路径,也就是当付款完毕后跳转本项目的页面,可以不是公网地址
     // ali:
-    //private final String RETURN_URL = "http://127.0.0.1/alipay/returnUrl";
+    private final String RETURN_URL = "http://127.0.0.1/alipay/returnUrl";
     // 付款成功后自动跳转至支付成功页面 :
-    private final String RETURN_URL = "http://localhost/front/page/pay-success.html";
+    //private final String RETURN_URL = "http://localhost/front/page/pay-success.html";
+    //private final String RETURN_URL = "http://localhost/order/pay?id=";
 
 
     //@RequestMapping("aliapy")
     @GetMapping
-    public void alipay(HttpServletResponse httpResponse, HttpSession session) throws IOException {
+    public void alipay(HttpServletResponse httpResponse, HttpServletRequest req) throws IOException {
 
         SecureRandom r = new SecureRandom();
         //实例化客户端,填入所需参数
@@ -68,6 +69,7 @@ public class PayController {
         //LambdaQueryWrapper<Orders> lqw = new LambdaQueryWrapper<>();
         //lqw.eq(Orders::getUserId, BaseContext.getCurrentId());
         //lqw.eq(Orders::getId, session.getAttribute("orderId"));
+        HttpSession session = req.getSession();
         Long orderId = (Long) session.getAttribute("orderId");
         Orders order = ordersService.getById(orderId);
 
@@ -98,11 +100,13 @@ public class PayController {
         httpResponse.getWriter().write(form);// 直接将完整的表单html输出到页面
         httpResponse.getWriter().flush();
         httpResponse.getWriter().close();
+
+        //httpResponse.sendRedirect("http://localhost/order/pay?id=orderId");
     }
 
     //@RequestMapping(value = "/returnUrl", method = RequestMethod.GET)
     //@GetMapping("/returnUrl")
-    public String returnUrl(HttpServletRequest request, HttpServletResponse response)
+    /*public String returnUrl(HttpServletRequest request, HttpServletResponse response)
             throws IOException, AlipayApiException {
         System.out.println("=================================同步回调=====================================");
 
@@ -144,6 +148,20 @@ public class PayController {
         } else {
             return "no";//跳转付款失败页面
         }
+    }*/
+
+    //同步回调,修改支付状态
+    @GetMapping("/returnUrl")
+    public void returnUrl(HttpServletRequest req, HttpServletResponse resp) throws IOException {
+        Long returnOrderId = (Long) req.getServletContext().getAttribute("returnOrderId");
+
+        //Long orderId = (Long) session.getAttribute("returnOrderId");
+        Orders order = ordersService.getById(returnOrderId);
+        //修改支付状态
+        order.setStatus(2);
+        ordersService.updateById(order);
+        //重定向到付款成功页面
+        resp.sendRedirect("http://localhost/front/page/pay-success.html");
     }
 }
 
