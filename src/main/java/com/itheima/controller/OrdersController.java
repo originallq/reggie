@@ -19,6 +19,7 @@ import javax.servlet.http.HttpServletResponse;
 import javax.servlet.http.HttpSession;
 import java.io.IOException;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.Date;
 import java.util.Iterator;
 import java.util.List;
@@ -38,6 +39,9 @@ public class OrdersController {
     private DishService dishService;
     @Autowired
     private SetmealService setmealService;
+
+    //停售\售空商品集合
+    private List<OrderDetail> removeList = new ArrayList<>();
 
     /**
      * @Description: 服务器端订单明细分页查询
@@ -133,6 +137,11 @@ public class OrdersController {
         return R.success(ordersDtoPage);
     }
 
+    /**
+     * @Description: 再来一单
+     * @Param: [orders]
+     * @Return
+     */
     @PostMapping("/again")
     public R<String> again(@RequestBody Orders orders) {
         if (orders == null) {
@@ -146,6 +155,7 @@ public class OrdersController {
         //订单明细集合
         List<OrderDetail> list = orderDetailService.list(lqw);
 
+
         /*购物车数据回显,先判断安当前商品是菜品还是套餐,
         然后判断商品是否还在售卖中,如果在售卖,添加;否则去除*/
         for (int i = 0; i < list.size(); i++) {
@@ -154,12 +164,17 @@ public class OrdersController {
             if (dishId != null) {
                 Dish dish = dishService.getById(dishId);
                 if (dish.getStatus() == 0) {
+                    removeList.add(orderDetail);
+
                     list.remove(orderDetail);
+                    //索引减1,避免并发修改异常
                     i -= 1;
                 }
             } else {
                 Setmeal setmeal = setmealService.getById(orderDetail.getSetmealId());
                 if (setmeal.getStatus() == 0) {
+                    removeList.add(orderDetail);
+
                     list.remove(orderDetail);
                     i -= 1;
                 }
@@ -205,8 +220,9 @@ public class OrdersController {
         for (ShoppingCart shoppingCart : shoppingCartList) {
             shoppingCartService.save(shoppingCart);
         }
-
+        if (removeList.size() != 0) {
+            return R.success("不好意思,购物车中有商品已停售了");
+        }
         return R.success("再来一单喽");
     }
-
 }
