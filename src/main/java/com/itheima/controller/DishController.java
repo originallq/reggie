@@ -15,12 +15,14 @@ import jdk.nashorn.internal.ir.annotations.Ignore;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 @RestController
@@ -34,6 +36,8 @@ public class DishController {
     @Autowired
     //注入CategoryService,根据id获取菜品名字
     private CategoryService categoryService;
+    @Autowired
+    private RedisTemplate redisTemplate;
 
     /**
      * @Description: 新增菜品->扩展方法
@@ -46,6 +50,13 @@ public class DishController {
     public R<String> save(@RequestBody DishDto dishDto) {
         //调用扩展方法saveWithFlavor
         dishService.saveWithFlavor(dishDto);
+        //todo 全部删除 如果有新保存数据,则把缓存全部删除
+        //Set<String> keys = redisTemplate.keys("dish_*");
+        //redisTemplate.delete(keys);
+        //todo 精确删除 保存在那个分类下,就删除该分类的缓存数据
+        String key = "dish_" + dishDto.getCategoryId() + "_1";
+        redisTemplate.delete(key);
+
         return R.success("添加成功");
     }
 
@@ -142,6 +153,14 @@ public class DishController {
     public R<String> update(@RequestBody DishDto dishDto) {
         //调用saveWithFlavor方法
         dishService.updateWithFlavor(dishDto);
+
+        //todo 全部清理 修改数据后需要清理缓存,保证数据的一致性
+        //Set<String> keys = redisTemplate.keys("dish_*");
+        //redisTemplate.delete(keys);
+        //todo 精确清理: 修改哪一个分类就清理这个分类的缓存,不全部清理
+        String key = "dish_" + dishDto.getCategoryId() + "_1";
+        redisTemplate.delete(key);
+
         return R.success("修改成功");
     }
 
@@ -184,6 +203,18 @@ public class DishController {
      */
     @GetMapping("/list")
     public R<List<DishDto>> list(Dish dish) {
+        //todo v1.0 判断redis缓存中是否有菜品数据,如果有直接从缓存中取数据
+        List<DishDto> dishDtoList = null;
+        //todo v1.0 动态构造key dish_******_1
+        String key = "dish_" + dish.getCategoryId() + "_" + dish.getStatus();
+        //todo v1.0 先从redis中获取缓存数据
+        dishDtoList = (List<DishDto>) redisTemplate.opsForValue().get(key);
+        if (dishDtoList != null) {
+            //TODO 如果有直接返回数据
+            return R.success(dishDtoList);
+        }
+        //todo 如果没有则从数据库中查询,再存入redis中
+
         //1.构造条件构造器
         LambdaQueryWrapper<Dish> lqw = new LambdaQueryWrapper<>();
 
@@ -197,7 +228,7 @@ public class DishController {
 
         /* 扩展:返回集合中应该含有口味信息,用于展示 */
 
-        List<DishDto> dishDtoList = list.stream().map((item) -> {
+        dishDtoList = list.stream().map((item) -> {
             /* 1.封装分类名称 */
             //a.创建DishDto对象,并进行拷贝赋值
             DishDto dishDto = new DishDto();
@@ -222,6 +253,9 @@ public class DishController {
 
             return dishDto;
         }).collect(Collectors.toList());
+        //todo 设置过期时间为60分钟
+        redisTemplate.opsForValue().set(key, dishDtoList, 60, TimeUnit.MINUTES);
+
         return R.success(dishDtoList);
     }
 
