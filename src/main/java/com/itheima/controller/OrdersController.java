@@ -221,8 +221,51 @@ public class OrdersController {
             shoppingCartService.save(shoppingCart);
         }
         if (removeList.size() != 0) {
-            return R.success("不好意思,购物车中有商品已停售了");
+            //清除removeList集合中数据
+            for (int i = 0; i < removeList.size(); i++) {
+                removeList.remove(i);
+                i -= 1;
+            }
+            return R.success("不好意思,购物车中有商品已售空了");
         }
         return R.success("再来一单喽");
+    }
+
+    /**
+     * @Description: 二次支付
+     * @Param: [orders]
+     * @Return
+     */
+    @PostMapping("payAgain")
+    public R<String> payAgain(@RequestBody Orders orders) {
+        //获取订单ID
+        Long orderId = orders.getId();
+        LambdaQueryWrapper<Orders> lqw = new LambdaQueryWrapper<>();
+        lqw.eq(orderId != null, Orders::getId, orderId);
+        Orders order = ordersService.getOne(lqw);
+        if (order != null) {
+            order.setStatus(2);
+        }
+        ordersService.updateById(order);
+        return R.success("支付成功");
+    }
+    
+    /**
+     * @Description: 取消订单
+     * @Param: [orders]
+     * @Return
+     */
+    @PostMapping("/cancel")
+    public R<String> cancel(@RequestBody Orders orders){
+        //获取订单ID
+        Long orderId = orders.getId();
+        LambdaQueryWrapper<Orders> lqw = new LambdaQueryWrapper<>();
+        lqw.eq(orderId != null, Orders::getId, orderId);
+        Orders order = ordersService.getOne(lqw);
+        if (order != null) {
+            order.setStatus(5);
+        }
+        ordersService.updateById(order);
+        return R.success("取消成功");
     }
 }
