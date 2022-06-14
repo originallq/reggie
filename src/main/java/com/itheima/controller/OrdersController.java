@@ -11,6 +11,7 @@ import com.itheima.service.*;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.core.annotation.Order;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.web.bind.annotation.*;
 
@@ -19,10 +20,7 @@ import javax.servlet.http.HttpServletResponse;
 import javax.servlet.http.HttpSession;
 import java.io.IOException;
 import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.Date;
-import java.util.Iterator;
-import java.util.List;
+import java.util.*;
 import java.util.stream.Collectors;
 
 @RestController
@@ -101,6 +99,7 @@ public class OrdersController {
     @GetMapping("/userPage")
     public R<Page> ordersList(int page, int pageSize) {
         Page<Orders> ordersPage = new Page<>(page, pageSize);
+
         //构建ordersDto分页构造器
         Page<OrdersDto> ordersDtoPage = new Page<OrdersDto>();
 
@@ -162,6 +161,7 @@ public class OrdersController {
             OrderDetail orderDetail = list.get(i);
             Long dishId = orderDetail.getDishId();
             if (dishId != null) {
+                //菜品
                 Dish dish = dishService.getById(dishId);
                 if (dish.getStatus() == 0) {
                     removeList.add(orderDetail);
@@ -171,6 +171,7 @@ public class OrdersController {
                     i -= 1;
                 }
             } else {
+                //套餐
                 Setmeal setmeal = setmealService.getById(orderDetail.getSetmealId());
                 if (setmeal.getStatus() == 0) {
                     removeList.add(orderDetail);
@@ -249,14 +250,14 @@ public class OrdersController {
         ordersService.updateById(order);
         return R.success("支付成功");
     }
-    
+
     /**
      * @Description: 取消订单
      * @Param: [orders]
      * @Return
      */
     @PostMapping("/cancel")
-    public R<String> cancel(@RequestBody Orders orders){
+    public R<String> cancel(@RequestBody Orders orders) {
         //获取订单ID
         Long orderId = orders.getId();
         LambdaQueryWrapper<Orders> lqw = new LambdaQueryWrapper<>();
@@ -267,5 +268,63 @@ public class OrdersController {
         }
         ordersService.updateById(order);
         return R.success("取消成功");
+    }
+
+    @GetMapping("/count")
+    public R<List<Goods>> count(String name, @DateTimeFormat(pattern = "yyyy-MM-dd HH:mm:ss") Date beginTime, @DateTimeFormat(pattern = "yyyy-MM-dd HH:mm:ss") Date endTime) {
+        //先查询已完成的订单(status=4),在查询订单明细
+        LambdaQueryWrapper<Orders> lqw = new LambdaQueryWrapper<>();
+        lqw.eq(Orders::getStatus, 4);
+        lqw.between(beginTime != null && endTime != null, Orders::getCheckoutTime, beginTime, endTime);
+        //可以查询指定日期内的订单
+        List<Orders> list = ordersService.list(lqw);
+
+        /*List<Goods> goodsList = list.stream().map((item) -> {
+            Goods goods = new Goods();
+            //根据订单ID获取每个订单下的商品集合
+            Long orderId = item.getId();
+            LambdaQueryWrapper<OrderDetail> odLqw = new LambdaQueryWrapper<>();
+            odLqw.eq(orderId != null, OrderDetail::getOrderId, orderId);
+            List<OrderDetail> detailList = orderDetailService.list(odLqw);
+        }).collect(Collectors.toList());*/
+        List<Goods> goodsList = new ArrayList<>();
+
+        for (Orders order : list) {
+            //根据订单ID获取每个订单下的商品集合
+            Long orderId = order.getId();
+            LambdaQueryWrapper<OrderDetail> odLqw = new LambdaQueryWrapper<>();
+            odLqw.eq(orderId != null, OrderDetail::getOrderId, orderId);
+            odLqw.like(name != null, OrderDetail::getName, name);
+            List<OrderDetail> detailList = orderDetailService.list(odLqw);
+            for (OrderDetail orderDetail : detailList) {
+                Goods goods = new Goods();
+
+                goods.setName(orderDetail.getName());
+                goods.setValue(orderDetail.getNumber());
+                goodsList.add(goods);
+            }
+        }
+        //使用map集合统计集合中重复的元素
+        Map<String, Integer> map = new HashMap<>();
+        for (Goods goods : goodsList) {
+            if (map.get(goods.getName()) == null) {
+                map.put(goods.getName(), goods.getValue());
+            } else {
+                //相同的key,值进行覆盖
+                map.put(goods.getName(), goods.getValue() + 1);
+            }
+        }
+        //遍历map集合
+        List<Goods> goodsArrayList = new ArrayList<>();
+        Set<Map.Entry<String, Integer>> entries = map.entrySet();
+        for (Map.Entry<String, Integer> entry : entries) {
+            Goods goods1 = new Goods();
+            goods1.setName(entry.getKey());
+            goods1.setValue(entry.getValue());
+            goodsArrayList.add(goods1);
+        }
+
+        System.out.println("goodsArrayList = " + goodsArrayList);
+        return R.success(goodsArrayList);
     }
 }
