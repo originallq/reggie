@@ -19,6 +19,7 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import javax.servlet.http.HttpSession;
 import java.io.IOException;
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.*;
 import java.util.stream.Collectors;
@@ -270,6 +271,12 @@ public class OrdersController {
         return R.success("取消成功");
     }
 
+
+    /**
+     * @Description: 根据日期查询销量明细
+     * @Param: [name, beginTime, endTime]
+     * @Return
+     */
     @GetMapping("/count")
     public R<List<Goods>> count(String name, @DateTimeFormat(pattern = "yyyy-MM-dd HH:mm:ss") Date beginTime, @DateTimeFormat(pattern = "yyyy-MM-dd HH:mm:ss") Date endTime) {
         //先查询已完成的订单(status=4),在查询订单明细
@@ -326,5 +333,27 @@ public class OrdersController {
 
         System.out.println("goodsArrayList = " + goodsArrayList);
         return R.success(goodsArrayList);
+    }
+
+    /**
+     * @Description: 查询营业总金额
+     * @Param: []
+     * @Return
+     */
+    @GetMapping("/query")
+    public R<Integer> queryTurnover() {
+        //获取已经完成的订单数
+        LambdaQueryWrapper<Orders> lqw = new LambdaQueryWrapper<>();
+        lqw.eq(Orders::getStatus, 4);
+        List<Orders> list = ordersService.list(lqw);
+
+        int sum = 0;
+        for (Orders orders : list) {
+            BigDecimal amount = orders.getAmount();
+            int value = amount.intValue();
+            sum += value;
+        }
+
+        return R.success(sum);
     }
 }
