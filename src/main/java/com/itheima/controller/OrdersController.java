@@ -38,6 +38,8 @@ public class OrdersController {
     private DishService dishService;
     @Autowired
     private SetmealService setmealService;
+    @Autowired
+    private EmployeeService employeeService;
 
     //停售\售空商品集合
     private List<OrderDetail> removeList = new ArrayList<>();
@@ -355,5 +357,51 @@ public class OrdersController {
         }
 
         return R.success(sum);
+    }
+
+    /**
+     * @Description: 查询管理员/普通用户/冻结用户数量
+     * @Param: []
+     * @Return
+     */
+    @GetMapping("/queryUser")
+    public R<Users> queryUser() {
+        //系统全部用户
+        int commonUser = employeeService.count();
+
+        //构造条件构造器
+        LambdaQueryWrapper<Employee> lqw = new LambdaQueryWrapper<>();
+        lqw.eq(Employee::getStatus, 0);
+        //系统冻结用户
+        int freezeUser = employeeService.count(lqw);
+
+        Users users = new Users();
+        users.setName(commonUser);
+        users.setValue(freezeUser);
+
+        return R.success(users);
+    }
+
+    /**
+     * @Description: 查询已完成\待处理订单数量
+     * @Param: []
+     * @Return
+     */
+    @GetMapping("/queryOrders")
+    public R<Users> queryOrders() {
+        //查询已完成订单
+        LambdaQueryWrapper<Orders> lqw = new LambdaQueryWrapper<>();
+        lqw.eq(Orders::getStatus, 4);
+        int completedOrder = ordersService.count(lqw);
+        //查询待处理订单
+        LambdaQueryWrapper<Orders> lqw1 = new LambdaQueryWrapper<>();
+        lqw1.eq(Orders::getStatus, 2);
+        int pendingOrder = ordersService.count(lqw1);
+
+        Users users = new Users();
+        users.setName(completedOrder);
+        users.setValue(pendingOrder);
+
+        return R.success(users);
     }
 }
